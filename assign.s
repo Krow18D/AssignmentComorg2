@@ -7,10 +7,14 @@ val:
 	STR R3,[R2],R4
 	LDRB R3,[R5,#0]
 	STRB R3,[R2,#0]
-	LDR R3,[R6,R8,LSL#2]
-	@ LDRH R3,[R5,#8]
-	@ LDRSH R3,[R5,#8]
-	@ STRH R3,[R5,#8]
+	LDR R3,[R6,R8,LSL #2]
+	LDRH R3,[R5,#8]
+	LDRSH R3,[R5,#8]
+	STRH R3,[R5,#8]
+	LDRSB R3,[R5,#8]
+	LDRH R3,[R5],#8
+	STRH R3,[R5,R6]
+	LDRH R3,[R6,#4]!
 	.word 0
 	.balign 4
 mes: .asciz "%x\n"
@@ -41,13 +45,16 @@ main:
 	STR lr, [r1] @ *r1=lr
 
 
+@--------data-checker-----------------------------------
+	@ ldr r0,=mes
+	@ ldr r10,=val
+	@ ldr r1,[r10,#56]
+	@ push {r1,r2,r3,r4}
+	@ bl printf
+	@ pop {r1,r2,r3,r4}
+@--------end-data-checker-------------------------------
+
 @------------Start-Here---------------------------------
-@	ldr r0,=mes
-@	ldr r10,=val
-@	ldr r1,[r10,#0]
-@	push {r1,r2,r3,r4}
-@	bl printf
-@	pop {r1,r2,r3,r4}
 ldr r10,=val
 _loop:
 @-----------type-------------------------------
@@ -59,8 +66,8 @@ _loop:
 	lsr r6,r6,#30
 	cmp r6,#1
 	 beq _single
-	@ cmp r6,#0
-	@ beq _half
+	 cmp r6,#0
+	 beq _half
 	@ cmp r6,#2
 	@ beq _block
 @-----------end-type---------------------------
@@ -74,10 +81,10 @@ _single:
 	cmp r6,#0
 	beq _load_str
 	ldr r0,=t_ldr
-	b _print1 
+	b _printstrldr 
 _load_str:
 	ldr r0,=t_str
-_print1:
+_printstrldr:
 	push {r1,r2,r3,r4}
 	bl printf
 	pop {r1,r2,r3,r4}
@@ -101,7 +108,6 @@ _space1:
 	pop {r1,r2,r3,r4}
 
 @----------print-Rd------------------------------------
-
 _printRd:
 	lsl r6,r5,#16
 	lsr r6,r6,#28
@@ -239,7 +245,177 @@ check_writeback_single:
 	push {r1,r2,r3,r4}
 	bl printf
 	pop {r1,r2,r3,r4}
-@-----------end-print-str-ldr--------------------------
+	b endof_
+@-----------end-single----------------------------------
+
+@-----------half----------------------------------------
+_half:
+	lsl r6,r5,#11
+	lsr r6,r6,#31
+	cmp r6,#0
+	beq _load_str2
+	ldr r0,=t_ldr
+	b _printstrldr2
+_load_str2:
+	ldr r0,=t_str
+_printstrldr2:
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+
+@-----------check SHB-----------------------------------
+	lsl r6,r5,#25
+	lsr r6,r6,#30
+	cmp r6,#0
+	beq endof_
+	cmp r6,#1
+	beq unsigned_half
+	cmp r6,#2
+	beq sign_byte
+	cmp r6,#3
+	beq sign_half
+
+unsigned_half:
+	ldr r0,=t_half
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+	b _space2
+sign_byte:
+	ldr r0,=t_sign
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+	ldr r0,=t_byte
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+	b _space2
+sign_half:
+	ldr r0,=t_sign
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+	ldr r0,=t_half
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+	b _space2
+
+@-----------print-space-----------------------
+_space2:
+	ldr r0,=t_space
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+
+_printRd2:
+	lsl r6,r5,#16
+	lsr r6,r6,#28
+	ldr r0,=t_r
+	mov r1,r6
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+	@comma
+	ldr r0,=t_cma
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+	@bracket
+	ldr r0,=t_opb
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+@---------print-Rn--------------------
+	lsl r6,r5,#12
+	lsr r6,r6,#28
+	ldr r0,=t_r
+	mov r1,r6
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+@-------check-pre-post---------------------------------
+	lsl r6,r5,#7
+	lsr r6,r6,#31
+	cmp r6,#1 @if pre
+	beq pre_half
+	bne post_half
+pre_half:
+	@comma
+	ldr r0,=t_cma
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+	b checkB_half
+post_half:
+	@bracket
+	ldr r0,=t_clb
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+	@comma
+	ldr r0,=t_cma
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+	b checkB_half
+
+checkB_half:
+	lsl r6,r5,#9
+	lsr r6,r6,#31
+	@ 0 register || 1 number 
+	cmp r6,#0
+	beq print_reg_half
+	bne print_im_half
+
+print_reg_half:
+	lsl r6,r5,#28
+	lsr r6,r6,#28
+	mov r1,r6
+	ldr r0,=t_r
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+	b prepost_half
+
+print_im_half:
+	@mix offset first
+	lsl r8,r5,#20
+	lsr r8,r6,#28
+	lsl r8,r8,#4
+
+	lsl r9,r5,#28
+	lsr r9,r9,#28
+	ORR r6,r8,r9
+	mov r1,r6
+	ldr r0,=t_sq
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+	b prepost_half
+
+prepost_half:
+	lsl r6,r5,#7
+	lsr r6,r6,#31
+	cmp r6,#1 @if pre
+	bne check_writeback_half
+	ldr r0,=t_clb
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+
+check_writeback_half:
+	lsl r6,r5,#10
+	lsr r6,r6,#31
+	cmp r6,#0
+	beq endof_
+	ldr r0,=t_wb
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+	b endof_
+
 endof_:	
 	ldr r0,=t_nl
 	push {r1,r2,r3,r4}
@@ -252,3 +428,6 @@ _exit_program:
 	LDR lr,=return
 	LDR lr, [lr]
 	BX LR @ swap lr,pc
+
+
+
