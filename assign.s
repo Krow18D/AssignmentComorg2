@@ -1,5 +1,6 @@
 .data
 val:
+	LDREQH R3,[R2,#8]
 	LDR R3,[R2,#8]
 	LDR R3,[R2,R5]!
 	STR R3,[R2]
@@ -10,9 +11,9 @@ val:
 	LDR R3,[R6,R8,LSL #2]
 	LDRH R3,[R5,#8]
 	LDRSH R3,[R5,#8]
-	STRH R3,[R5,#8]
-	LDRSB R3,[R5,#8]
-	LDRH R3,[R5],#8
+	STRGTH R3,[R5,#8]
+	LDRNESB R3,[R5,#8]
+	LDRNEH R3,[R5],#8
 	STRH R3,[R5,R6]
 	LDRH R3,[R6,#4]!
 	LDREQ R3,[R2,#8]
@@ -63,20 +64,20 @@ main:
 	STR lr, [r1] @ *r1=lr
 
 
-@--------data-checker-----------------------------------
+@--------data-checker----------------------------------
 	@ ldr r0,=mes
 	@ ldr r10,=val
-	@ ldr r1,[r10,#60]
+	@ ldr r1,[r10,#0]
 	@ @lsr r1,r1,#28
 	@ push {r1,r2,r3,r4}
 	@ bl printf
 	@ pop {r1,r2,r3,r4}
-@--------end-data-checker-------------------------------
+@--------end-data-checker------------------------------
 
-@------------Start-Here---------------------------------
+@------------Start-Here--------------------------------
 ldr r10,=val
 _loop:
-@-----------type-------------------------------
+@-----------type---------------------------------------
 	
 	ldr r5,[r10],#4
 	cmp r5,#0
@@ -89,9 +90,9 @@ _loop:
 	 beq _half
 	@ cmp r6,#2
 	@ beq _block
-@-----------end-type---------------------------
+@-----------end-type-----------------------------------
 
-@------------Print-str-ldr------------------------------
+@------------Print-str-ldr-----------------------------
 _single:
 
 	lsl r6,r5,#11
@@ -106,7 +107,7 @@ _printstrldr:
 	push {r1,r2,r3,r4}
 	bl printf
 	pop {r1,r2,r3,r4}
-@-------condition-------------------------------------
+@-------condition--------------------------------------
 	lsr r6,r5,#28
 	cmp r6,#14
 	beq _checkbyte
@@ -160,7 +161,7 @@ _printRd:
 	push {r1,r2,r3,r4}
 	bl printf
 	pop {r1,r2,r3,r4}
-@------print-Rn---------------------------------------
+@------print-Rn----------------------------------------
 	lsl r6,r5,#12
 	lsr r6,r6,#28
 	ldr r0,=t_r
@@ -193,7 +194,7 @@ post_single:
 	bl printf
 	pop {r1,r2,r3,r4}
 	b checkI_single
-@--------check single-----------
+@check single
 checkI_single:
 	lsl r6,r5,#6
 	lsr r6,r6,#31
@@ -275,9 +276,9 @@ check_writeback_single:
 	bl printf
 	pop {r1,r2,r3,r4}
 	b endof_
-@-----------end-single----------------------------------
+@-----------end-single--------------------------------
 
-@-----------half----------------------------------------
+@-----------half--------------------------------------
 _half:
 	lsl r6,r5,#11
 	lsr r6,r6,#31
@@ -291,8 +292,25 @@ _printstrldr2:
 	push {r1,r2,r3,r4}
 	bl printf
 	pop {r1,r2,r3,r4}
-
-@-----------check SHB-----------------------------------
+@-------condition-------------------------------------
+	lsr r6,r5,#28
+	cmp r6,#14
+	beq _checkbyte
+	mov r11,#2
+	mul r8,r6,r11
+	ldr r9,=t_condi
+	ldrb r1,[r9,r8]
+	ldr r0,=chr
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+	add r8,r8,#1
+	ldrb r1,[r9,r8]
+	ldr r0,=chr
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+@-----------check SHB---------------------------------
 	lsl r6,r5,#25
 	lsr r6,r6,#30
 	cmp r6,#0
@@ -331,7 +349,7 @@ sign_half:
 	pop {r1,r2,r3,r4}
 	b _space2
 
-@-----------print-space-----------------------
+@-----------print-space-------------------------------
 _space2:
 	ldr r0,=t_space
 	push {r1,r2,r3,r4}
@@ -356,7 +374,7 @@ _printRd2:
 	push {r1,r2,r3,r4}
 	bl printf
 	pop {r1,r2,r3,r4}
-@---------print-Rn--------------------
+@---------print-Rn------------------------------------
 	lsl r6,r5,#12
 	lsr r6,r6,#28
 	ldr r0,=t_r
@@ -364,7 +382,7 @@ _printRd2:
 	push {r1,r2,r3,r4}
 	bl printf
 	pop {r1,r2,r3,r4}
-@-------check-pre-post---------------------------------
+@-------check-pre-post--------------------------------
 	lsl r6,r5,#7
 	lsr r6,r6,#31
 	cmp r6,#1 @if pre
@@ -445,6 +463,7 @@ check_writeback_half:
 	pop {r1,r2,r3,r4}
 	b endof_
 @---------------end-half------------------------------
+@-----------to-new-data-------------------------------
 endof_:	
 	ldr r0,=t_nl
 	push {r1,r2,r3,r4}
@@ -452,7 +471,7 @@ endof_:
 	pop {r1,r2,r3,r4}
 	
 	b _loop
-@___________return______________________________________
+@___________return____________________________________
 _exit_program:	
 	LDR lr,=return
 	LDR lr, [lr]
