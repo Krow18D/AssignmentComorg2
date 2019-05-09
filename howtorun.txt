@@ -1,0 +1,3 @@
+as -g -o assign.o assign.s
+gcc -o assign assign.o
+./assign
