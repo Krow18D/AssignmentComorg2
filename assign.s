@@ -15,9 +15,26 @@ val:
 	LDRH R3,[R5],#8
 	STRH R3,[R5,R6]
 	LDRH R3,[R6,#4]!
+	LDREQ R3,[R2,#8]
+	LDRNE R3,[R2,#12]
+	LDRGT R3,[R2,#11]
+	LDRGE R3,[R2,#13]
+	LDRLT R3,[R2,#26]
+	LDRLE R3,[R2,#10]
+	STRCS R3,[R2,#2]
+	LDRCC R3,[R2,#17]
+	LDRMI R3,[R2,#24]
+	STRPL R3,[R2,#29]
+	LDRAL R3,[R2,#8]
+	LDRVS R3,[R2,#12]
+	STRVC R3,[R2,#14]
+	LDRHI R3,[R2,#21]
+	LDRLS R3,[R2,#22]
 	.word 0
 	.balign 4
 mes: .asciz "%x\n"
+chr: .asciz "%c"
+t_condi: .asciz "EQNECSCCMIPLVSVCHILSGELTGTLE"
 t_ldr: .asciz "LDR"
 t_str: .asciz "STR"
 t_byte: .asciz "B"
@@ -29,6 +46,7 @@ t_opb: .asciz "["
 t_clb: .asciz "]"
 t_cma: .asciz ","
 t_sq: .asciz "#%d"
+
 t_shl: .asciz "LSL#%d"
 t_shr: .asciz "LSR#%d"
 t_space: .asciz " "
@@ -48,7 +66,8 @@ main:
 @--------data-checker-----------------------------------
 	@ ldr r0,=mes
 	@ ldr r10,=val
-	@ ldr r1,[r10,#56]
+	@ ldr r1,[r10,#60]
+	@ @lsr r1,r1,#28
 	@ push {r1,r2,r3,r4}
 	@ bl printf
 	@ pop {r1,r2,r3,r4}
@@ -72,7 +91,6 @@ _loop:
 	@ beq _block
 @-----------end-type---------------------------
 
-	
 @------------Print-str-ldr------------------------------
 _single:
 
@@ -88,8 +106,26 @@ _printstrldr:
 	push {r1,r2,r3,r4}
 	bl printf
 	pop {r1,r2,r3,r4}
-
+@-------condition-------------------------------------
+	lsr r6,r5,#28
+	cmp r6,#14
+	beq _checkbyte
+	mov r11,#2
+	mul r8,r6,r11
+	ldr r9,=t_condi
+	ldrb r1,[r9,r8]
+	ldr r0,=chr
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
+	add r8,r8,#1
+	ldrb r1,[r9,r8]
+	ldr r0,=chr
+	push {r1,r2,r3,r4}
+	bl printf
+	pop {r1,r2,r3,r4}
 @-----------check-byte---------------------------------
+_checkbyte:
 	lsl r6,r5,#9
 	lsr r6,r6,#31
 	cmp r6,#0
@@ -98,8 +134,6 @@ _printstrldr:
 	push {r1,r2,r3,r4}
 	bl printf
 	pop {r1,r2,r3,r4}
-
-
 @-----------print-space--------------------------------
 _space1:	
 	ldr r0,=t_space
@@ -220,12 +254,7 @@ right_single:
 	pop {r1,r2,r3,r4}
 	b prepost2
 
-@print_shiftnum_single:
-	@ ldr r0,=t_sq
-	@ mov r1,r6
-	@ push {r1,r2,r3,r4}
-	@ bl printf
-	@ pop {r1,r2,r3,r4}
+
 prepost2:
 	lsl r6,r5,#7
 	lsr r6,r6,#31
@@ -415,7 +444,7 @@ check_writeback_half:
 	bl printf
 	pop {r1,r2,r3,r4}
 	b endof_
-
+@---------------end-half------------------------------
 endof_:	
 	ldr r0,=t_nl
 	push {r1,r2,r3,r4}
